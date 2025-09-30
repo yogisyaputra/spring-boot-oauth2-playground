@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>Profile (JWT)</title>
+<h1>Profile (JWT)</h1>
+<div id="content">Loading...</div>
+<script>
+    const qs = new URLSearchParams(location.hash.slice(1));
+    const token = qs.get('token');
+    if (token) { localStorage.setItem('access_token', token); history.replaceState(null, '', location.pathname); }
+    const jwt = localStorage.getItem('access_token');
+    if (!jwt) {
+        document.getElementById('content').innerHTML = `
+      <a href="/oauth2/authorization/google">Login with Google</a> |
+      <a href="/oauth2/authorization/github">Login with GitHub</a>`;
+    } else {
+        fetch('/api/me', { headers: { Authorization: 'Bearer ' + jwt }})
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(d => {
+                document.getElementById('content').innerHTML = `
+          <pre>${JSON.stringify(d, null, 2)}</pre>
+          <button id="logout">Logout</button>`;
+                document.getElementById('logout').onclick = async () => {
+                    await fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + jwt }});
+                    localStorage.removeItem('access_token'); location.reload();
+                };
+            })
+            .catch(e => document.getElementById('content').textContent = 'Error: ' + e);
+    }
+</script>

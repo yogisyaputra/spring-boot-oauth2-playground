@@ -1,0 +1,76 @@
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:161.97.86.105}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:RahasiaBanget123}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://161.97.86.105:5432/oauth2-playground}
+    username: ${SPRING_DATASOURCE_USERNAME:appuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:supersecret}
+  flyway:
+    baseline-on-migrate: true
+    locations:
+      - classpath:migrations
+    validate-on-migrate: true
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate:
+        format_sql: true
+        default_schema: public
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: Ov23li3xHfImhDJaWayt
+            client-secret: d3aa332c00f828665e07b177e4a7152f61fca46c
+            scope: read:user, user:email
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid, profile, email
+        provider:
+          # pakai default Google (sudah ada di Spring)
+          # GitHub juga sudah di-resolve otomatis; bagian ini bisa di-skip
+          # tapi tetap disediakan kalau mau override endpoint.
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: id
+      resourceserver:
+        jwt:
+          secret-key: ${APP_JWT_SECRET:change-this-dev-secret-at-least-32-bytes}
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+app:
+  cookie:
+    # kalau FE beda origin dan HTTPS: secure=true, same-site=None
+    secure: false
+    same-site: Lax
+  jwt:
+    # Minimal 32 char. Ganti untuk produksi (pakai env)
+    secret: ${APP_JWT_SECRET:this_is_only_for_dev_change_me_at_least_32_chars}
+    expires-minutes: ${APP_JWT_EXPIRES:60}
+    issuer: oauth-login-demo
+    cookie-name: ACCESS_TOKEN        # nama cookie kalau pakai cookie HttpOnly
+  oauth2:
+    # ke mana redirect setelah sukses login (FE page)
+    post-login-redirect: ${APP_POST_LOGIN_REDIRECT:http://localhost:8080/profile.html}
+
+
+
+
