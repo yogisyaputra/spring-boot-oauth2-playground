@@ -4,11 +4,11 @@ server:
 spring:
   data:
     redis:
-      host: ${REDIS_HOST:161.97.86.105}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:RahasiaBanget123}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://161.97.86.105:5432/oauth2-playground}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/oauth2-playground}
     username: ${SPRING_DATASOURCE_USERNAME:appuser}
     password: ${SPRING_DATASOURCE_PASSWORD:supersecret}
   flyway:
@@ -31,8 +31,8 @@ spring:
       client:
         registration:
           github:
-            client-id: Ov23li3xHfImhDJaWayt
-            client-secret: d3aa332c00f828665e07b177e4a7152f61fca46c
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
             scope: read:user, user:email
           google:
             client-id: ${GOOGLE_CLIENT_ID}
