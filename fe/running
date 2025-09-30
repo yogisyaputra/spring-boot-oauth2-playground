@@ -1,0 +1,1 @@
+npx http-server fe -p 8181 --cors

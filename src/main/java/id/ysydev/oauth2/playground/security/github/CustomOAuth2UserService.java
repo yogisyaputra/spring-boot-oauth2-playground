@@ -1,5 +1,6 @@
-package id.ysydev.oauth2.playground.security;
+package id.ysydev.oauth2.playground.security.github;
 
+import id.ysydev.oauth2.playground.security.gmail.GithubEmail;
 import id.ysydev.oauth2.playground.user.User;
 import id.ysydev.oauth2.playground.user.UserProviderAccount;
 import id.ysydev.oauth2.playground.user.UserProviderAccountRepository;

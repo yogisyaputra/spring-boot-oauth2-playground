@@ -1,7 +1,6 @@
-package id.ysydev.oauth2.playground.security;
+package id.ysydev.oauth2.playground.security.gmail;
 
 import id.ysydev.oauth2.playground.user.*;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
@@ -14,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -79,13 +78,13 @@ public class CustomOidcUserService extends OidcUserService {
 
         // Bungkus kembali sebagai DefaultOidcUser, tambahkan authority & claim ekstra via attributes
         Set<SimpleGrantedAuthority> authorities = Set.of(new SimpleGrantedAuthority("ROLE_USER"));
-        HashMap<String,Object> mapped = new java.util.HashMap<>(oidcUser.getClaims());
+        HashMap<String,Object> mapped = new HashMap<>(oidcUser.getClaims());
         mapped.put("app_user_id", user.getId().toString());
 
         // kembalikan OIDC user dengan claims yang sudah diperkaya
         return new DefaultOidcUser(authorities, idToken, userInfo, "sub") {
             @Override
-            public java.util.Map<String, Object> getAttributes() {
+            public Map<String, Object> getAttributes() {
                 return mapped;
             }
         };

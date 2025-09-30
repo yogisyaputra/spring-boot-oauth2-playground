@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>FE @8181 — OAuth Demo</title>
+<h1>FE @8181</h1>
+
+<p>
+    <a href="http://localhost:8080/oauth2/authorization/google">Login with Google</a> |
+    <a href="http://localhost:8080/oauth2/authorization/github">Login with GitHub</a>
+</p>
+
+<button id="btnMe">GET /api/me</button>
+<button id="btnLogout">POST /api/auth/logout</button>
+<button id="btnRefresh">POST /api/auth/refresh</button>
+
+<pre id="out">Click the buttons above…</pre>
+
+<script src="app.js"></script>

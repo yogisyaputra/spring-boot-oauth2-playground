@@ -1,4 +1,4 @@
-package id.ysydev.oauth2.playground.security;
+package id.ysydev.oauth2.playground.redis;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

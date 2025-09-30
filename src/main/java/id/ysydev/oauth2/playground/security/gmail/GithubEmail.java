@@ -1,4 +1,4 @@
-package id.ysydev.oauth2.playground.security;
+package id.ysydev.oauth2.playground.security.gmail;
 
 import lombok.Getter;
 import lombok.Setter;
