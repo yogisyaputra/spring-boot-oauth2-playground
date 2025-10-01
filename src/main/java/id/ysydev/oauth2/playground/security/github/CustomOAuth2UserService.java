@@ -2,9 +2,9 @@ package id.ysydev.oauth2.playground.security.github;
 
 import id.ysydev.oauth2.playground.security.gmail.GithubEmail;
 import id.ysydev.oauth2.playground.user.User;
-import id.ysydev.oauth2.playground.user.UserProviderAccount;
-import id.ysydev.oauth2.playground.user.UserProviderAccountRepository;
-import id.ysydev.oauth2.playground.user.UserRepository;
+import id.ysydev.oauth2.playground.user.UserService;
+import id.ysydev.oauth2.playground.user_provider.UserProviderAccount;
+import id.ysydev.oauth2.playground.user_provider.UserProviderAccountService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -24,12 +24,12 @@ import java.util.*;
 @Service
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final UserRepository userRepository;
-    private final UserProviderAccountRepository accountRepository;
+    private final UserService userService;
+    private final UserProviderAccountService accountService;
 
-    public CustomOAuth2UserService(UserRepository userRepository, UserProviderAccountRepository accountRepository) {
-        this.userRepository = userRepository;
-        this.accountRepository = accountRepository;
+    public CustomOAuth2UserService(UserService userService, UserProviderAccountService accountService) {
+        this.userService = userService;
+        this.accountService = accountService;
     }
 
     @Override
@@ -80,7 +80,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // Upsert user
         String finalEmail = email;
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
+        User user = userService.findByEmail(email).orElseGet(() -> {
             User u = new User();
             u.setId(UUID.randomUUID());
             u.setEmail(finalEmail);
@@ -90,13 +90,13 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         user.setName(name);
         user.setAvatarUrl(avatarUrl);
         user.setLastLoginAt(OffsetDateTime.now());
-        user = userRepository.saveAndFlush(user);
+        user = userService.saveAndFlush(user);
         log.info("Upsert user: id={} email={}", user.getId(), user.getEmail());
 
 
         // Upsert provider account
         User finalUser = user;
-        UserProviderAccount account = accountRepository
+        UserProviderAccount account = accountService
                 .findByProviderAndProviderUserId(registrationId, providerUserId)
                 .orElseGet(() -> {
                     UserProviderAccount acc = new UserProviderAccount();
@@ -108,7 +108,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 });
         account.setUsername(username);
         account.setProfileUrl(profileUrl);
-        accountRepository.saveAndFlush(account);
+        accountService.saveAndFlush(account);
         log.info("Upsert account: provider={} providerUserId={} userId={}",
                 registrationId, providerUserId, user.getId());
 

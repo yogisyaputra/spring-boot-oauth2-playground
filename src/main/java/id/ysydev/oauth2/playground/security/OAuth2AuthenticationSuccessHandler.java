@@ -2,11 +2,14 @@ package id.ysydev.oauth2.playground.security;
 
 import id.ysydev.oauth2.playground.redis.RedisTokenStore;
 import id.ysydev.oauth2.playground.security.jwt.JwtService;
+import id.ysydev.oauth2.playground.user.User;
+import id.ysydev.oauth2.playground.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -16,9 +19,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
-public class OAuth2AuthenticationSuccessHandler implements org.springframework.security.web.authentication.AuthenticationSuccessHandler {
+public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
+    private final UserService userService;
     private final RedisTokenStore tokenStore;
     private final HttpCookieOAuth2AuthorizationRequestRepository cookieRepo;
     private final String postLoginRedirect;
@@ -31,7 +35,7 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
     private final String cookieDomain;
 
     public OAuth2AuthenticationSuccessHandler(
-            JwtService jwtService,
+            JwtService jwtService, UserService userService,
             RedisTokenStore tokenStore,
             HttpCookieOAuth2AuthorizationRequestRepository cookieRepo,
             @Value("${app.oauth2.post-login-redirect}") String postLoginRedirect,
@@ -44,6 +48,7 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
             @Value("${app.cookie.domain:}") String cookieDomain
     ) {
         this.jwtService = jwtService;
+        this.userService = userService;
         this.tokenStore = tokenStore;
         this.cookieRepo = cookieRepo;
         this.postLoginRedirect = postLoginRedirect;
@@ -62,10 +67,15 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
         OAuth2User p = (OAuth2User) auth.getPrincipal();
         String uid = String.valueOf(p.getAttributes().get("app_user_id"));
         String email = (String) p.getAttributes().get("email");
+        User user = userService.findById(UUID.fromString(uid)).orElseThrow();
 
         // buat & simpan ACCESS
         String aJti = jwtService.newJti();
-        String access = jwtService.createAccess(uid, aJti, Map.of("email", email));
+
+        String accessJwt = jwtService.createAccess(uid, aJti, Map.of(
+                "email", email,
+                "roles", user.getRole()  // <- penting
+        ));
         tokenStore.putAccess(aJti, uid);
 
         // buat & simpan REFRESH
@@ -76,7 +86,7 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
         cookieRepo.removeAuthorizationRequestCookies(req, res);
 
         // set cookies
-        CookieUtil.addCookie(res, accessCookieName, access, accessMaxAge, "/", true, cookieSecure, sameSite, cookieDomain);
+        CookieUtil.addCookie(res, accessCookieName, accessJwt, accessMaxAge, "/", true, cookieSecure, sameSite, cookieDomain);
         CookieUtil.addCookie(res, refreshCookieName, refresh, refreshMaxAge, "/", true, cookieSecure, sameSite, cookieDomain);
 
         res.sendRedirect(postLoginRedirect); // balik ke FE

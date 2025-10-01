@@ -1,4 +1,4 @@
-package id.ysydev.oauth2.playground.web;
+package id.ysydev.oauth2.playground.controller;
 
 import id.ysydev.oauth2.playground.redis.RedisTokenStore;
 import id.ysydev.oauth2.playground.security.CookieUtil;

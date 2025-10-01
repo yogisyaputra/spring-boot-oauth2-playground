@@ -30,6 +30,9 @@ public class User {
     @Column(name = "last_login_at")
     private OffsetDateTime lastLoginAt;
 
+    @Column(nullable = false)
+    private String role = "USER"; // default
+
     @PrePersist
     void prePersist() {
         if (id == null) id = UUID.randomUUID();

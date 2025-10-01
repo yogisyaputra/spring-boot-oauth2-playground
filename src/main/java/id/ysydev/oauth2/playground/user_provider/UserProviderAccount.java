@@ -1,5 +1,6 @@
-package id.ysydev.oauth2.playground.user;
+package id.ysydev.oauth2.playground.user_provider;
 
+import id.ysydev.oauth2.playground.user.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

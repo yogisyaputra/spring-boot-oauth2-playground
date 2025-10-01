@@ -41,3 +41,25 @@ document.getElementById("btnRefresh").onclick = async () => {
         out(String(e));
     }
 };
+
+// GET /api/admin/stats (pakai credentials=include supaya cookie ACCESS_TOKEN ikut)
+document.getElementById("btnAdminStat").onclick = async () => {
+    try {
+        const r = await fetch(`${API}/api/admin/stats`, { credentials: "include" });
+        if (!r.ok) return out(`HTTP ${r.status}`);
+        out(await r.json());
+    } catch (e) {
+        out(String(e));
+    }
+};
+
+// GET /api/admin/stats (pakai credentials=include supaya cookie ACCESS_TOKEN ikut)
+document.getElementById("btnUser").onclick = async () => {
+    try {
+        const r = await fetch(`${API}/api/users/c1e715e9-1b22-452b-9a2c-ff122f109716`, { credentials: "include" });
+        if (!r.ok) return out(`HTTP ${r.status}`);
+        out(await r.json());
+    } catch (e) {
+        out(String(e));
+    }
+};

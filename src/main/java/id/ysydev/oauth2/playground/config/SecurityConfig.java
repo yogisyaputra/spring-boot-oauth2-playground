@@ -74,6 +74,7 @@ public class SecurityConfig {
                                 "/api/public/**",
                                 "/api/auth/refresh"     // refresh boleh tanpa auth; cookie akan diverifikasi di controller
                         ).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
 

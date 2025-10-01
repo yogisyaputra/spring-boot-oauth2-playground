@@ -1,6 +1,8 @@
 package id.ysydev.oauth2.playground.security.gmail;
 
 import id.ysydev.oauth2.playground.user.*;
+import id.ysydev.oauth2.playground.user_provider.UserProviderAccount;
+import id.ysydev.oauth2.playground.user_provider.UserProviderAccountService;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
@@ -20,12 +22,12 @@ import java.util.UUID;
 @Service
 public class CustomOidcUserService extends OidcUserService {
 
-    private final UserRepository userRepository;
-    private final UserProviderAccountRepository accountRepository;
+    private final UserService userService;
+    private final UserProviderAccountService accountService;
 
-    public CustomOidcUserService(UserRepository userRepository, UserProviderAccountRepository accountRepository) {
-        this.userRepository = userRepository;
-        this.accountRepository = accountRepository;
+    public CustomOidcUserService(UserService userService, UserProviderAccountService accountService) {
+        this.userService = userService;
+        this.accountService = accountService;
     }
 
     @Override
@@ -46,7 +48,7 @@ public class CustomOidcUserService extends OidcUserService {
         }
 
         // upsert users
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
+        User user = userService.findByEmail(email).orElseGet(() -> {
             User u = new User();
             u.setId(UUID.randomUUID());
             u.setEmail(email);
@@ -56,11 +58,11 @@ public class CustomOidcUserService extends OidcUserService {
         user.setName(name);
         user.setAvatarUrl(avatarUrl);
         user.setLastLoginAt(OffsetDateTime.now());
-        user = userRepository.saveAndFlush(user);
+        user = userService.saveAndFlush(user);
 
         // upsert provider account
         User finalUser = user;
-        UserProviderAccount acc = accountRepository
+        UserProviderAccount acc = accountService
                 .findByProviderAndProviderUserId(registrationId, providerUserId)
                 .orElseGet(() -> {
                     UserProviderAccount a = new UserProviderAccount();
@@ -70,7 +72,7 @@ public class CustomOidcUserService extends OidcUserService {
                     a.setUser(finalUser);
                     return a;
                 });
-        accountRepository.saveAndFlush(acc);
+        accountService.saveAndFlush(acc);
 
         // sisipkan app_user_id sebagai claim tambahan agar /api/me bisa baca
         OidcIdToken idToken = oidcUser.getIdToken();

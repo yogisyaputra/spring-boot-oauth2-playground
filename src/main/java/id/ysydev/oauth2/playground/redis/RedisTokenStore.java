@@ -22,12 +22,30 @@ public class RedisTokenStore {
         this.accessTtl = accessMin * 60;
         this.refreshTtl = refreshDays * 24 * 60 * 60;
     }
+
     // ACCESS
-    public void putAccess(String jti, String uid) { redis.opsForValue().set(A+jti, uid, Duration.ofSeconds(accessTtl)); }
-    public boolean accessExists(String jti) { return Boolean.TRUE.equals(redis.hasKey(A+jti)); }
-    public void revokeAccess(String jti) { redis.delete(A+jti); }
+    public void putAccess(String jti, String uid) {
+        redis.opsForValue().set(A + jti, uid, Duration.ofSeconds(accessTtl));
+    }
+
+    public boolean accessExists(String jti) {
+        return Boolean.TRUE.equals(redis.hasKey(A + jti));
+    }
+
+    public void revokeAccess(String jti) {
+        redis.delete(A + jti);
+    }
+
     // REFRESH
-    public void putRefresh(String jti, String uid) { redis.opsForValue().set(R+jti, uid, Duration.ofSeconds(refreshTtl)); }
-    public String ownerOfRefresh(String jti) { return redis.opsForValue().get(R+jti); }
-    public void revokeRefresh(String jti) { redis.delete(R+jti); }
+    public void putRefresh(String jti, String uid) {
+        redis.opsForValue().set(R + jti, uid, Duration.ofSeconds(refreshTtl));
+    }
+
+    public String ownerOfRefresh(String jti) {
+        return redis.opsForValue().get(R + jti);
+    }
+
+    public void revokeRefresh(String jti) {
+        redis.delete(R + jti);
+    }
 }
