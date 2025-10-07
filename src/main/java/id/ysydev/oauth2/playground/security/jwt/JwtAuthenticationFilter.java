@@ -9,7 +9,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -19,39 +18,52 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-// security/JwtAuthenticationFilter.java
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private final JwtService jwt; private final RedisTokenStore store; private final String accessCookieName;
-    public JwtAuthenticationFilter(JwtService jwt, RedisTokenStore store, String accessCookieName) {
-        this.jwt = jwt; this.store = store; this.accessCookieName = accessCookieName;
+    private final JwtService jwtService;
+    private final RedisTokenStore tokenStore;
+    private final String accessCookieName;
+    private final String sessionCookieName;
+
+    public JwtAuthenticationFilter(JwtService jwt, RedisTokenStore store, String accessCookieName, String sessionCookieName) {
+        this.jwtService = jwt;
+        this.tokenStore = store;
+        this.accessCookieName = accessCookieName;
+        this.sessionCookieName = sessionCookieName;
     }
-    @Override protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
-        String token = readCookie(req, accessCookieName);
-        if (token != null) {
+        String accessJwt = readCookie(request, accessCookieName);
+        String sid = readCookie(request, sessionCookieName); // wajib ada
+
+        if (StringUtils.hasText(accessJwt) && StringUtils.hasText(sid)) {
             try {
-                Claims c = jwt.parse(token).getBody();
-                if ("access".equals(c.get("typ")) && store.accessExists(c.getId())) {
+                Jws<Claims> parsed = jwtService.parse(accessJwt);
+                Claims c = parsed.getBody();
+                if (!"access".equals(c.get("typ"))) throw new RuntimeException("not access token");
+                String jti = c.getId();
+                if (StringUtils.hasText(jti) && tokenStore.accessPairValid(jti, sid)) {
                     String uid = c.getSubject();
-                    String roles = (String) c.get("roles"); // bisa null untuk token lama
-                    List<GrantedAuthority> auths = new ArrayList<>();
-                    if (roles == null || roles.isEmpty()) {
-                        auths.add(new SimpleGrantedAuthority("ROLE_USER")); // backward compat
-                    } else {
-                        for (String r : roles.split(",")) {
-                            auths.add(new SimpleGrantedAuthority("ROLE_" + r.trim()));
-                        }
-                    }
+
+                    List<SimpleGrantedAuthority> auths = new ArrayList<>();
+                    String roles = (String) c.get("roles");
+                    if (!StringUtils.hasText(roles)) auths.add(new SimpleGrantedAuthority("ROLE_USER"));
+                    else for (String r : roles.split(",")) auths.add(new SimpleGrantedAuthority("ROLE_" + r.trim()));
+
                     var auth = new UsernamePasswordAuthenticationToken(uid, null, auths);
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
-        chain.doFilter(req, res);
+        chain.doFilter(request, res);
     }
+
     private String readCookie(HttpServletRequest req, String name) {
-        if (req.getCookies()==null) return null;
-        for (Cookie c : req.getCookies()) if (name.equals(c.getName())) return c.getValue();
+        Cookie[] cookies = req.getCookies();
+        if (cookies == null) return null;
+        for (Cookie c : cookies) if (name.equals(c.getName())) return c.getValue();
         return null;
     }
 }

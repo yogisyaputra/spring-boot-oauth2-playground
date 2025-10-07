@@ -11,10 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -33,6 +31,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
     private final int accessMaxAge;
     private final int refreshMaxAge;
     private final String cookieDomain;
+    private final String sessionCookieName;
 
     public OAuth2AuthenticationSuccessHandler(
             JwtService jwtService, UserService userService,
@@ -45,7 +44,8 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             @Value("${app.jwt.refresh-expires-days:14}") long refreshDays,
             @Value("${app.cookie.secure:false}") boolean cookieSecure,
             @Value("${app.cookie.same-site:Lax}") String sameSite,
-            @Value("${app.cookie.domain:}") String cookieDomain
+            @Value("${app.cookie.domain:}") String cookieDomain,
+            @Value("${app.session.cookie-name:SESSION_KEY}") String sessionCookieName
     ) {
         this.jwtService = jwtService;
         this.userService = userService;
@@ -54,42 +54,52 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         this.postLoginRedirect = postLoginRedirect;
         this.accessCookieName = accessCookieName;
         this.refreshCookieName = refreshCookieName;
-        this.accessMaxAge = (int)(accessMinutes * 60);
-        this.refreshMaxAge = (int)(refreshDays * 24 * 60 * 60);
+        this.accessMaxAge = (int) (accessMinutes * 60);
+        this.refreshMaxAge = (int) (refreshDays * 24 * 60 * 60);
         this.cookieSecure = cookieSecure;
         this.sameSite = sameSite;
         this.cookieDomain = cookieDomain;
+        this.sessionCookieName = sessionCookieName;
     }
 
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest req, HttpServletResponse res, Authentication auth) throws IOException {
-        OAuth2User p = (OAuth2User) auth.getPrincipal();
-        String uid = String.valueOf(p.getAttributes().get("app_user_id"));
-        String email = (String) p.getAttributes().get("email");
+        OAuth2User principal = (OAuth2User) auth.getPrincipal();
+        String uid = String.valueOf(principal.getAttributes().get("app_user_id"));
+        String email = (String) principal.getAttributes().get("email");
+
+        // 1) Generate SID (SESSION_KEY)
+        String sid = java.util.UUID.randomUUID().toString().replace("-", "");
+
         User user = userService.findById(UUID.fromString(uid)).orElseThrow();
 
-        // buat & simpan ACCESS
-        String aJti = jwtService.newJti();
-
-        String accessJwt = jwtService.createAccess(uid, aJti, Map.of(
+        // 2) ACCESS (pair dengan sid)
+        String accessJti = jwtService.newJti();
+        String accessJwt = jwtService.createAccess(uid, accessJti, Map.of(
                 "email", email,
-                "roles", user.getRole()  // <- penting
+                "roles", user.getRole()
         ));
-        tokenStore.putAccess(aJti, uid);
+        tokenStore.putAccessPair(accessJti, uid, sid);
 
-        // buat & simpan REFRESH
-        String rJti = jwtService.newJti();
-        String refresh = jwtService.createRefresh(uid, rJti);
-        tokenStore.putRefresh(rJti, uid);
+        // 3) REFRESH (tetap seperti sebelumnya)
+        String refreshJti = jwtService.newJti();
+        String refreshJwt = jwtService.createRefresh(uid, refreshJti);
+        tokenStore.putRefresh(refreshJti, uid);
 
+
+        // 4) Bersihkan cookie state oauth2
         cookieRepo.removeAuthorizationRequestCookies(req, res);
 
-        // set cookies
-        CookieUtil.addCookie(res, accessCookieName, accessJwt, accessMaxAge, "/", true, cookieSecure, sameSite, cookieDomain);
-        CookieUtil.addCookie(res, refreshCookieName, refresh, refreshMaxAge, "/", true, cookieSecure, sameSite, cookieDomain);
 
-        res.sendRedirect(postLoginRedirect); // balik ke FE
+        // 5) Set cookies (ACCESS, REFRESH, SESSION_KEY)
+        var domain = (this.cookieDomain != null && !this.cookieDomain.isEmpty()) ? this.cookieDomain : null;
+        CookieUtil.addCookie(res, accessCookieName, accessJwt, accessMaxAge, "/", true, cookieSecure, sameSite, domain);
+        CookieUtil.addCookie(res, refreshCookieName, refreshJwt, refreshMaxAge, "/", true, cookieSecure, sameSite, domain);
+        CookieUtil.addCookie(res, sessionCookieName, sid, accessMaxAge, "/", true, cookieSecure, sameSite, domain);
+
+        // 6) Redirect ke FE
+        res.sendRedirect(postLoginRedirect);
     }
 
 

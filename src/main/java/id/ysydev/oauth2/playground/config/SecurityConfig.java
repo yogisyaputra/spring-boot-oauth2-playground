@@ -1,7 +1,8 @@
 package id.ysydev.oauth2.playground.config;
 
 import id.ysydev.oauth2.playground.redis.RedisTokenStore;
-import id.ysydev.oauth2.playground.security.*;
+import id.ysydev.oauth2.playground.security.HttpCookieOAuth2AuthorizationRequestRepository;
+import id.ysydev.oauth2.playground.security.OAuth2AuthenticationSuccessHandler;
 import id.ysydev.oauth2.playground.security.github.CustomOAuth2UserService;
 import id.ysydev.oauth2.playground.security.gmail.CustomOidcUserService;
 import id.ysydev.oauth2.playground.security.jwt.JwtAuthenticationFilter;
@@ -35,8 +36,8 @@ public class SecurityConfig {
         CorsConfiguration cfg = new CorsConfiguration();
         // Bisa multi-origin via CSV: "http://localhost:8181,https://app.example.com"
         cfg.setAllowedOrigins(List.of(allowedOriginsCsv.split("\\s*,\\s*")));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Content-Type","Accept","Authorization","X-Requested-With"));
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cfg.setAllowedHeaders(List.of("Content-Type", "Accept", "Authorization", "X-Requested-With"));
         cfg.setAllowCredentials(true); // wajib kalau kirim cookie HttpOnly cross-origin
         cfg.setMaxAge(3600L);
 
@@ -54,13 +55,15 @@ public class SecurityConfig {
             OAuth2AuthenticationSuccessHandler successHandler,
             JwtService jwtService,
             RedisTokenStore tokenStore,
-            @Value("${app.jwt.access-cookie-name:ACCESS_TOKEN}") String accessCookieName
+            @Value("${app.jwt.access-cookie-name:ACCESS_TOKEN}") String accessCookieName,
+            @Value("${app.session.cookie-name:SESSION_KEY}") String sessionCookieName
     ) throws Exception {
 
         http
                 // App ini 100% stateless (JWT di cookie)
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {}) // pakai bean corsConfigurationSource()
+                .cors(cors -> {
+                }) // pakai bean corsConfigurationSource()
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // Authorization rules
@@ -90,7 +93,9 @@ public class SecurityConfig {
 
                 // JWT filter: validasi ACCESS_TOKEN dari cookie + cek whitelist Redis
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtService, tokenStore, accessCookieName),
+                        new JwtAuthenticationFilter(jwtService, tokenStore,
+                                accessCookieName,
+                                sessionCookieName /* @Value("${app.session.cookie-name:SESSION_KEY}") */),
                         UsernamePasswordAuthenticationFilter.class
                 )
 

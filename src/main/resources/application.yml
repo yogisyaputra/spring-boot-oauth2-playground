@@ -70,6 +70,8 @@ app:
     issuer: oauth-login-demo
     access-cookie-name: ACCESS_TOKEN        # nama cookie kalau pakai cookie HttpOnly
     refresh-cookie-name: REFRESH_TOKEN
+  session:
+    cookie-name: SESSION_KEY
   oauth2:
     # ke mana redirect setelah sukses login (FE page)
     post-login-redirect: ${APP_POST_LOGIN_REDIRECT:http://localhost:8181/}

@@ -10,42 +10,45 @@ import java.time.Duration;
 @Component
 public class RedisTokenStore {
     private final StringRedisTemplate redis;
-    private final long accessTtl;
-    private final long refreshTtl;
-    private static final String A = "auth:jwt:";      // access prefix
-    private static final String R = "auth:refresh:";  // refresh prefix
+    private final long accessTtlSeconds;
+    private final long refreshTtlSeconds;
+    private static final String ACCESS_PREFIX = "auth:jwt:";    // access prefix
+    private static final String REFRESH_PREFIX = "auth:refresh:";  // refresh prefix
 
     public RedisTokenStore(StringRedisTemplate redis,
-                           @Value("${app.jwt.access-expires-minutes:15}") long accessMin,
-                           @Value("${app.jwt.refresh-expires-days:14}") long refreshDays) {
+                           @Value("${app.jwt.access-expires-minutes:15}") long accessTtlSeconds,
+                           @Value("${app.jwt.refresh-expires-days:14}") long refreshTtlSeconds) {
         this.redis = redis;
-        this.accessTtl = accessMin * 60;
-        this.refreshTtl = refreshDays * 24 * 60 * 60;
-    }
-
-    // ACCESS
-    public void putAccess(String jti, String uid) {
-        redis.opsForValue().set(A + jti, uid, Duration.ofSeconds(accessTtl));
-    }
-
-    public boolean accessExists(String jti) {
-        return Boolean.TRUE.equals(redis.hasKey(A + jti));
+        this.accessTtlSeconds = accessTtlSeconds * 60;
+        this.refreshTtlSeconds = refreshTtlSeconds * 24 * 60 * 60;
     }
 
     public void revokeAccess(String jti) {
-        redis.delete(A + jti);
+        redis.delete(ACCESS_PREFIX + jti);
     }
 
-    // REFRESH
     public void putRefresh(String jti, String uid) {
-        redis.opsForValue().set(R + jti, uid, Duration.ofSeconds(refreshTtl));
+        redis.opsForValue().set(REFRESH_PREFIX + jti, uid, Duration.ofSeconds(refreshTtlSeconds));
     }
 
-    public String ownerOfRefresh(String jti) {
-        return redis.opsForValue().get(R + jti);
+    public String getRefreshOwner(String jti) {
+        return redis.opsForValue().get(REFRESH_PREFIX + jti);
     }
 
     public void revokeRefresh(String jti) {
-        redis.delete(R + jti);
+        redis.delete(REFRESH_PREFIX + jti);
+    }
+
+    public void putAccessPair(String jti, String uid, String sid) {
+        redis.opsForValue().set(ACCESS_PREFIX + jti, uid + "|" + sid, Duration.ofSeconds(accessTtlSeconds));
+    }
+
+    public boolean accessPairValid(String jti, String sid) {
+        String val = redis.opsForValue().get(ACCESS_PREFIX + jti);
+        if (val == null) return false;
+        int p = val.indexOf('|');
+        if (p < 0) return false;
+        String savedSid = val.substring(p + 1);
+        return savedSid.equals(sid);
     }
 }
