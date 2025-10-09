@@ -57,6 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             } catch (Exception ignored) {
             }
         }
+        tokenStore.touchSession(sid);
         chain.doFilter(request, res);
     }
 

@@ -63,3 +63,13 @@ document.getElementById("btnUser").onclick = async () => {
         out(String(e));
     }
 };
+
+document.getElementById("btnListDevice").onclick = async () => {
+    try {
+        const r = await fetch(`${API}/api/devices`, { credentials: "include" });
+        if (!r.ok) return out(`HTTP ${r.status}`);
+        out(await r.json());
+    } catch (e) {
+        out(String(e));
+    }
+};

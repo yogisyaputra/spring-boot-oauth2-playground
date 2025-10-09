@@ -51,12 +51,12 @@ public class AuthController {
             // ROTASI refresh
             tokenStore.revokeRefresh(oldJti);
             String newRefreshJti = jwtService.newJti();
-            String newRefresh = jwtService.createRefresh(uid, newRefreshJti);
-            tokenStore.putRefresh(newRefreshJti, uid);
+            String newRefresh    = jwtService.createRefresh(uid, newRefreshJti);
+            tokenStore.putRefreshPair(newRefreshJti, uid, sid);   // <— pakai pair dgn sid
 
             // ACCESS baru — pair dengan SID yang sama
             String newAccessJti = jwtService.newJti();
-            String newAccess = jwtService.createAccess(uid, newAccessJti, java.util.Map.of());
+            String newAccess    = jwtService.createAccess(uid, newAccessJti, Map.of());
             tokenStore.putAccessPair(newAccessJti, uid, sid);
 
             int accessMaxAge = (int) (accessMin * 60);

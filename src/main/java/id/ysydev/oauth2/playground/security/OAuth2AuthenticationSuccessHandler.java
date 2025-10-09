@@ -74,6 +74,10 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         User user = userService.findById(UUID.fromString(uid)).orElseThrow();
 
+        String ua = req.getHeader("User-Agent");
+        String ip = req.getRemoteAddr();
+        tokenStore.createSession(sid, uid, ua, ip);
+
         // 2) ACCESS (pair dengan sid)
         String accessJti = jwtService.newJti();
         String accessJwt = jwtService.createAccess(uid, accessJti, Map.of(
@@ -85,7 +89,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         // 3) REFRESH (tetap seperti sebelumnya)
         String refreshJti = jwtService.newJti();
         String refreshJwt = jwtService.createRefresh(uid, refreshJti);
-        tokenStore.putRefresh(refreshJti, uid);
+        tokenStore.putRefreshPair(refreshJti, uid,sid);
 
 
         // 4) Bersihkan cookie state oauth2
